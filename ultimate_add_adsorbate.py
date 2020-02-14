@@ -263,6 +263,7 @@ if __name__ == '__main__':
 		atom2_surf = surface[atom2_surf_index]
 		atom1_mol = molecule[atom1_mol_index]
 		atom2_mol = molecule[atom2_mol_index]
+		atom3_mol = molecule[atom3_mol_index]
 		
 		offset = np.array([0, 0, bond_length])
 	except Exception as error:
