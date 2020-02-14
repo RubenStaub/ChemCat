@@ -104,17 +104,17 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 	# Check if dihedral angles can be defined
 	do_dihedral = dihedral_angle_target is not None
 	do_mol_dihedral = mol_dihedral_angle_target is not None
+	dihedral_use_mol2 = False
 	# Check if bond_surf and bond_inter are not aligned
 	if np.allclose(np.cross(bond_surf, bond_inter), 0):
 		print("Warning: Surface atoms are incompatible with adsorption direction/bond. An adsorption dihedral angle cannot be defined.", file=sys.stderr)
-		#raise AssertionError('Surface atoms are incompatible with adsorption direction.')
 		do_dihedral = False
 	# Check if requested bond angle is not flat
 	if np.isclose((bond_angle_target + 90)%180 - 90, 0):
-		print("Warning: Requested bond angle is flat. Dihedral angles cannot be defined.", file=sys.stderr)
-		#raise AssertionError('Requested bond angle cannot be flat.')
-		do_dihedral = False
+		print("Warning: Requested bond angle is flat. Only a single dihedral angle can be defined (atom2_surf, atom1_surf, atom2_mol, atom3_mol).", file=sys.stderr)
 		do_mol_dihedral = False
+		dihedral_use_mol2 = True
+		print("Warning: Dihedral adsorption angle rotation will be perfomed with ({}, {}, {}, {}).".format(atom2_surf.index, atom1_surf.index, atom2_mol.index, atom3_mol.index), file=sys.stderr)
 	# Check if bond_mol and bond2_mol are not aligned
 	if np.allclose(np.cross(bond_mol, bond2_mol), 0):
 		print("Warning: Adsorbates atoms are aligned. An adsorbate dihedral angle cannot be defined.", file=sys.stderr)
@@ -177,7 +177,10 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		# Retrieve current dihedral angle (by computing the angle between the orthogonal rejection of bond_surf and bond_mol onto bond_inter)
 		bond_inter_inner = np.dot(bond_inter, bond_inter)
 		bond_surf_reject = bond_surf - np.dot(bond_surf, bond_inter)/bond_inter_inner * bond_inter
-		bond_mol_reject = bond_mol - np.dot(bond_mol, bond_inter)/bond_inter_inner * bond_inter
+		if dihedral_use_mol2:
+			bond_mol_reject = bond2_mol - np.dot(bond2_mol, bond_inter)/bond_inter_inner * bond_inter
+		else:
+			bond_mol_reject = bond_mol - np.dot(bond_mol, bond_inter)/bond_inter_inner * bond_inter
 		dihedral_angle_ini = get_proper_angle(bond_surf_reject, bond_mol_reject, -bond_inter)
 		
 		# Apply dihedral rotation along bond_inter
@@ -188,7 +191,10 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		
 		# Check if rotation was successful
 		# Check dihedral rotation
-		bond_mol_reject = bond_mol - np.dot(bond_mol, bond_inter)/bond_inter_inner * bond_inter
+		if dihedral_use_mol2:
+			bond_mol_reject = bond2_mol - np.dot(bond2_mol, bond_inter)/bond_inter_inner * bond_inter
+		else:
+			bond_mol_reject = bond_mol - np.dot(bond_mol, bond_inter)/bond_inter_inner * bond_inter
 		dihedral_angle = get_proper_angle(bond_surf_reject, bond_mol_reject, -bond_inter)
 		# Check bond rotation is unmodified
 		bond_angle = get_proper_angle(bond_inter, bond_mol)
