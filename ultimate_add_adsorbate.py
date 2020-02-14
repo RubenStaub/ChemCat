@@ -240,7 +240,7 @@ if __name__ == '__main__':
 		# Read from command line arguments
 		surface_filename = sys.argv[1]
 		molecule_filename = sys.argv[2]
-		output_filename = sys.argv[10]
+		output_filename = sys.argv[11]
 		
 		atom1_surf_index = int(sys.argv[3])
 		atom2_surf_index = int(sys.argv[4])
