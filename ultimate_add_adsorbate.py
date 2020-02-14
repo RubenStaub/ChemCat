@@ -240,7 +240,7 @@ if __name__ == '__main__':
 		# Read from command line arguments
 		surface_filename = sys.argv[1]
 		molecule_filename = sys.argv[2]
-		output_filename = sys.argv[11]
+		output_filename = sys.argv[12]
 		
 		atom1_surf_index = int(sys.argv[3])
 		atom2_surf_index = int(sys.argv[4])
@@ -286,7 +286,7 @@ if __name__ == '__main__':
 	# Use direct coordinates output if PBC are on (unless prevented by user)
 	# This is due to a bug of Molden: POSCAR files are written in cartesian by default, but the "Cartesian" keyword does not seem well handled by Molden...
 	try:
-		direct_coords_bool = bool(sys.argv[12])
+		direct_coords_bool = bool(sys.argv[13])
 	except Exception:
 		direct_coords_bool = pbc_bool
 	if pbc_bool:
