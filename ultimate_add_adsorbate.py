@@ -188,6 +188,8 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		
 		# Update molecular bond
 		bond_mol = atom2_mol.position - atom1_mol.position
+		if dihedral_use_mol2:
+			bond2_mol = atom3_mol.position - atom2_mol.position
 		
 		# Check if rotation was successful
 		# Check dihedral rotation
