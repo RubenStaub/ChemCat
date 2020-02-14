@@ -158,8 +158,9 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 	# Apply rotation to reach desired bond_angle
 	molecule.rotate(bond_angle_target-bond_angle_ini, v=rotation_vector, center=atom1_mol.position)
 	
-	# Update molecular bond
+	# Update molecular bonds
 	bond_mol = atom2_mol.position - atom1_mol.position
+	bond2_mol = atom3_mol.position - atom2_mol.position
 	
 	# Check if rotation was successful
 	bond_angle = get_proper_angle(bond_inter, bond_mol)
@@ -186,10 +187,9 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		# Apply dihedral rotation along bond_inter
 		molecule.rotate(dihedral_angle_target-dihedral_angle_ini, v=-bond_inter, center=atom1_mol.position)
 		
-		# Update molecular bond
+		# Update molecular bonds
 		bond_mol = atom2_mol.position - atom1_mol.position
-		if dihedral_use_mol2:
-			bond2_mol = atom3_mol.position - atom2_mol.position
+		bond2_mol = atom3_mol.position - atom2_mol.position
 		
 		# Check if rotation was successful
 		# Check dihedral rotation
@@ -234,7 +234,7 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		dihedral_angle = get_proper_angle(bond_surf_reject, bond_mol_reject, -bond_inter)
 		# Check bond rotation is unmodified
 		bond_angle = get_proper_angle(bond_inter, bond_mol)
-		if np.isclose((dihedral_angle - dihedral_angle_target + 90)%180 - 90, 0) and np.isclose((bond_angle - bond_angle_target + 90)%180 - 90, 0) and np.allclose(atom1_surf.position - atom1_mol.position, bond_inter):
+		if np.isclose((mol_dihedral_angle - mol_dihedral_angle_target + 90)%180 - 90, 0) and np.isclose((dihedral_angle - dihedral_angle_target + 90)%180 - 90, 0) and np.isclose((bond_angle - bond_angle_target + 90)%180 - 90, 0) and np.allclose(atom1_surf.position - atom1_mol.position, bond_inter):
 			print("Adsorbate dihedral rotation successfully applied (error: {:.2f}°)".format((mol_dihedral_angle - mol_dihedral_angle_target + 90)%180 - 90))
 		else:
 			raise AssertionError('An unknown error occured during the adsorbate dihedral rotation')
