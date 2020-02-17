@@ -5,7 +5,7 @@
 
 # Importing librairies
 
-import sys
+import argparse
 import numpy as np
 import ase
 from ase import io
@@ -17,8 +17,8 @@ from ase.io import write
 
 __author__ = "Ruben Staub"
 __copyright__ = "Copyright © Laboratoire de Chimie, ENS de Lyon"
-__credits__ = ["Ruben Staub", "Sarah Blanck"]
-__license__ = "GNU GPL"
+__credits__ = ["Ruben Staub", "Sarah Blanck", "Danish Kaur Pannu", "Carine Seraphim"]
+__license__ = "GNU LGPL"
 __version__ = "3"
 __maintainer__ = "Ruben Staub"
 __email__ = "ruben.staub@ens-lyon.fr"
@@ -243,59 +243,61 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 # Main program
 
 if __name__ == '__main__':
-	# Initialisation of adsorption parameters
-	try:
-		# Read from command line arguments
-		surface_filename = sys.argv[1]
-		molecule_filename = sys.argv[2]
-		output_filename = sys.argv[12]
-		
-		atom1_surf_index = int(sys.argv[3])
-		atom2_surf_index = int(sys.argv[4])
-		atom1_mol_index = int(sys.argv[5])
-		atom2_mol_index = int(sys.argv[6])
-		atom3_mol_index = int(sys.argv[7])
-		
-		bond_length = float(sys.argv[8])
-		bond_angle_target = float(sys.argv[9])
-		dihedral_angle_target = float(sys.argv[10])
-		mol_dihedral_angle_target = float(sys.argv[11])
-		
-		# Retrieve objects
-		surface = read(surface_filename)
-		print("Surface ({} atoms) successfully retrieved from {}".format(surface.get_number_of_atoms(), surface_filename))
-		molecule = read(molecule_filename)
-		print("Adsorbate ({} atoms) successfully retrieved from {}".format(molecule.get_number_of_atoms(), molecule_filename))
-		
-		atom1_surf = surface[atom1_surf_index]
-		atom2_surf = surface[atom2_surf_index]
-		atom1_mol = molecule[atom1_mol_index]
-		atom2_mol = molecule[atom2_mol_index]
-		atom3_mol = molecule[atom3_mol_index]
-		
-		offset = np.array([0, 0, bond_length])
-	except Exception as error:
-		small_help_string = "Usage: {} surface_filename molecule_filename surf_atom1_index surf_atom2_index mol_atom1_index mol_atom2_index mol_atom3_index bond_length bond_angle dihedral_angle mol_dihedral_angle output_filename [force_cart_coords_bool]".format(sys.argv[0])
-		if isinstance(error, IndexError):
-			print("Fatal: Expected at least 12 arguments, got {} only\n".format(len(sys.argv)-1))
-			print(small_help_string, file=sys.stderr)
-			sys.exit(1)
-		raise AssertionError(small_help_string)
+	# Read from command line arguments
+	parser = argparse.ArgumentParser()
+	parser.add_argument("base_input_filename", help="filename of base input")
+	parser.add_argument("new_input_filename", help="filename of new input")
+	
+	parser.add_argument("base1_index", help="index of base1 atom", type=int)
+	parser.add_argument("base2_index", help="index of base2 atom", type=int)
+	parser.add_argument("new1_index", help="index of new1 atom", type=int)
+	parser.add_argument("new2_index", help="index of new2 atom", type=int)
+	parser.add_argument("new3_index", help="index of new3 atom", type=int)
+	
+	parser.add_argument("-bx", "--bond_vector_x", help="X-component of requested bond vector", type=float, default=0.0)
+	parser.add_argument("-by", "--bond_vector_y", help="Y-component of requested bond vector", type=float, default=0.0)
+	parser.add_argument("bond_vector_z", help="Z-component of requested bond vector", type=float)
+	
+	parser.add_argument("bond_angle", help="requested bond angle (base1, new1, new2)", type=float)
+	parser.add_argument("bond_dihedral_angle", help="requested bond dihedral angle (new2, new1, base1, base2)", type=float)
+	parser.add_argument("new_dihedral_angle", help="requested new dihedral angle (base1, new1, new2, new3)", type=float)
+	
+	parser.add_argument("output_filename", help="filename of concatenated output")
+	
+	parser.add_argument("--force_cartesian", help="force writing cartesian coordinates (even if PBC is detected)", action="store_true")
+	
+	args = parser.parse_args()
+	
+	
+	# Retrieve objects
+	base_structure = read(args.base_input_filename)
+	print("Base structure ({} atoms) successfully retrieved from {}".format(base_structure.get_number_of_atoms(), args.base_input_filename))
+	new_structure = read(args.new_input_filename)
+	print("New structure ({} atoms) successfully retrieved from {}".format(new_structure.get_number_of_atoms(), args.new_input_filename))
+	
+	base1_atom = base_structure[args.base1_index]
+	base2_atom = base_structure[args.base2_index]
+	new1_atom = new_structure[args.new1_index]
+	new2_atom = new_structure[args.new2_index]
+	new3_atom = new_structure[args.new3_index]
+	
+	bond_vector = np.array([args.bond_vector_x, args.bond_vector_y, args.bond_vector_z])
+	
 	
 	# Perform transformation of adsorbate geometry
 	print("\nPerfoming transformations of the adsorbate to reach desired properties:")
-	transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom1_surf, atom2_surf, offset, bond_angle_target, dihedral_angle_target=dihedral_angle_target, mol_dihedral_angle_target=mol_dihedral_angle_target)
+	transform_adsorbate(new_structure, base_structure, new1_atom, new2_atom, new3_atom, base1_atom, base2_atom, bond_vector, args.bond_angle, dihedral_angle_target=args.bond_dihedral_angle, mol_dihedral_angle_target=args.new_dihedral_angle)
 	
 	# Concatenate structures
-	final = surface+molecule
+	final = base_structure + new_structure
 	
 	# Check if periodic boundary conditions (PBC) is on
 	pbc_bool = final.get_pbc().any()
 	# Use direct coordinates output if PBC are on (unless prevented by user)
 	# This is due to a bug of Molden: POSCAR files are written in cartesian by default, but the "Cartesian" keyword does not seem well handled by Molden...
-	try:
-		direct_coords_bool = bool(sys.argv[13])
-	except Exception:
+	if args.force_cartesian:
+		direct_coords_bool = False
+	else:
 		direct_coords_bool = pbc_bool
 	if pbc_bool:
 		if direct_coords_bool:
@@ -307,5 +309,5 @@ if __name__ == '__main__':
 			print("Warning: anisotropic PBC is not yet supported by ASE, expecting uncoherent geometries...", file=sys.stderr)
 	
 	# Write adsorbed geometry
-	write(output_filename, final, direct=direct_coords_bool)
-	print("\nAdsorbed geometry (surface+adsorbate) successfully written into '{}'".format(output_filename))
+	write(args.output_filename, final, direct=direct_coords_bool)
+	print("\nCombined geometry (base+new) successfully written into '{}'".format(args.output_filename))
