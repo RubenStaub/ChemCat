@@ -60,6 +60,4 @@ As a consequence, output files generated with this script should be compatible w
 Probably not. ASE does not currently handle PBC in some directions only. If such systems are detected, a warning message will be displayed...
 
 ### How can I adsorb a molecule on a bridge or fcc/hcp site?
-Currently, the command-line interface does not support adsorption not on top. But this is work is progress ;)
-
-In the meantime, you can still use the Python3 API to achieve that, simply change the bond vector (e.g. [1, 1, 2] instead of [0, 0, 2]) and the bond angle accordingly!
+Simply provide with a bond vector not aligned with the Z-axis (just remember to define the bond angle accordindly).
