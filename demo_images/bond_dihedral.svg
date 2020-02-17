@@ -462,17 +462,18 @@
      style="fill:none;fill-rule:evenodd;stroke:#77212e;stroke-width:5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#marker4815)"
      id="path4680"
      sodipodi:type="arc"
-     sodipodi:cx="336.53519"
-     sodipodi:cy="264.08759"
+     sodipodi:cx="-334.77771"
+     sodipodi:cy="-265.50549"
      sodipodi:rx="26.462566"
      sodipodi:ry="26.462566"
      sodipodi:start="3.3869199"
      sodipodi:end="6.2811505"
-     d="m 310.86497,257.66052 a 26.462566,26.462566 0 0 1 28.88135,-19.83995 26.462566,26.462566 0 0 1 23.25138,26.21317"
-     sodipodi:open="true" />
+     d="m -360.44793,-271.93256 a 26.462566,26.462566 0 0 1 28.88136,-19.83995 26.462566,26.462566 0 0 1 23.25137,26.21317"
+     sodipodi:open="true"
+     transform="scale(-1,-1)" />
   <path
      style="fill:none;fill-rule:evenodd;stroke:#cc5c00;stroke-width:3.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#TriangleOutM-6-5-2)"
-     d="m 238.71227,316.95381 67.83534,-29.87079"
+     d="m 238.71227,316.95381 60.57595,-26.6444"
      id="path4282-9-1-5"
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="cc" />
