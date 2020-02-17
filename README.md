@@ -12,19 +12,24 @@ This tool aims to provide with a simple yet powerful, command-line based solutio
 ### Parameters
 
 - 5 atomic landmarks: `base1`, `base2`, `new1`, `new2`, `new3`
-**TODO** `landmarks image`
+
+![atomic landmarks](demo_images/landmarks.svg)
 
 - Bond vector
-**TODO** `image`
+
+![bond vector](demo_images/bond_vector.svg)
 
 - Bond angle
-**TODO** `image`
+
+![bond angle](demo_images/bond_angle.svg)
 
 - Bond dihedral angle
-**TODO** `image`
+
+![bond dihedral angle](demo_images/bond_dihedral.svg)
 
 - New molecular dihedral angle
-**TODO** `image`
+
+![new molecular dihedral angle](demo_images/new_dihedral.svg)
 
 Definitely, assembling chemical structures has never been so simple! Finally a `cat` command for chemistry...
 
