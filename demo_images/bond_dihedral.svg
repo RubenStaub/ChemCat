@@ -32,6 +32,20 @@
   <defs
      id="defs4194">
     <marker
+       inkscape:stockid="TriangleOutS"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="marker18855"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path18857"
+         d="M 5.77,0.0 L -2.88,5.0 L -2.88,-5.0 L 5.77,0.0 z "
+         style="fill-rule:evenodd;stroke:#ce5b78;stroke-width:1pt;stroke-opacity:1;fill:#ce5b78;fill-opacity:1"
+         transform="scale(0.2)" />
+    </marker>
+    <marker
        inkscape:stockid="TriangleInS"
        orient="auto"
        refY="0.0"
@@ -319,10 +333,10 @@
      inkscape:window-height="1041"
      id="namedview4192"
      showgrid="false"
-     inkscape:zoom="1.2397743"
-     inkscape:cx="128.28174"
-     inkscape:cy="290.46453"
-     inkscape:window-x="1152"
+     inkscape:zoom="2.4795486"
+     inkscape:cx="249.7319"
+     inkscape:cy="329.49801"
+     inkscape:window-x="768"
      inkscape:window-y="18"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg4190"
@@ -429,7 +443,7 @@
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="cc" />
   <path
-     style="fill:none;fill-rule:evenodd;stroke:#ce5b78;stroke-width:7;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#TriangleInS)"
+     style="fill:none;fill-rule:evenodd;stroke:#ce5b78;stroke-width:7;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker18855)"
      d="m 336.68564,471.86007 0.0692,-96.07886"
      id="path4655"
      inkscape:connector-curvature="0"
