@@ -1,4 +1,4 @@
-# *![chem cat logo](demo_images/chem_cat_logo.svg)* ChemCat
+# *![chem cat logo](demo/chem_cat_logo.svg)* ChemCat
 Concatenate chemical structures easily
 
 ## Assembling chemical structures has never been so simple
@@ -13,23 +13,23 @@ This tool aims to provide with a simple yet powerful, command-line based solutio
 
 - 5 atomic landmarks: `base1`, `base2`, `new1`, `new2`, `new3`
 
-![atomic landmarks](demo_images/landmarks.svg)
+![atomic landmarks](demo/landmarks.svg)
 
 - Bond vector (base1 -> new1)
 
-![bond vector](demo_images/bond_vector.svg)
+![bond vector](demo/bond_vector.svg)
 
 - Bond angle (base1, new1, new2)
 
-![bond angle](demo_images/bond_angle.svg)
+![bond angle](demo/bond_angle.svg)
 
 - Bond dihedral angle (base2, base1, new1, new2)
 
-![bond dihedral angle](demo_images/bond_dihedral.svg)
+![bond dihedral angle](demo/bond_dihedral.svg)
 
 - New molecular dihedral angle (base1, new1, new2, new3)
 
-![new molecular dihedral angle](demo_images/new_dihedral.svg)
+![new molecular dihedral angle](demo/new_dihedral.svg)
 
 And that's it! Only the bare minimum (but complete) set of convenient parameters for merging two structures together.
 
@@ -37,21 +37,75 @@ Definitely, assembling chemical structures has never been so simple! Finally a `
 
 ## A convenient builder for adsorption
 
-**TODO** `Simple interface for adding adsorbates + add images`
+You can use the `chemcat.py` Python3 script directly in your terminal, thanks to a rich command-line interface. Simply run in your terminal:
+```Bash
+python3 chemcat.py -h
+```
+will display the basic help:
+```
+usage: chemcat.py [-h] [-bx BOND_VECTOR_X] [-by BOND_VECTOR_Y]
+                  [--force_cartesian] [--vasp5] [--sort]
+                  base_input_filename new_input_filename base1_index
+                  base2_index new1_index new2_index new3_index bond_vector_z
+                  bond_angle bond_dihedral_angle new_dihedral_angle
+                  output_filename
+
+positional arguments:
+  base_input_filename   filename of base input
+  new_input_filename    filename of new input
+  base1_index           index of base1 atom
+  base2_index           index of base2 atom
+  new1_index            index of new1 atom
+  new2_index            index of new2 atom
+  new3_index            index of new3 atom
+  bond_vector_z         Z-component of requested bond vector
+  bond_angle            requested bond angle (base1, new1, new2)
+  bond_dihedral_angle   requested bond dihedral angle (base2, base1, new1,
+                        new2)
+  new_dihedral_angle    requested new dihedral angle (base1, new1, new2, new3)
+  output_filename       filename of concatenated output
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -bx BOND_VECTOR_X, --bond_vector_x BOND_VECTOR_X
+                        X-component of requested bond vector
+  -by BOND_VECTOR_Y, --bond_vector_y BOND_VECTOR_Y
+                        Y-component of requested bond vector
+  --force_cartesian     force writing cartesian coordinates (even if PBC is
+                        detected)
+  --vasp5               use VASP5 file format
+  --sort                sort atomic coordinates (useful for VASP format)
+```
+
+### Example
+
+To obtain the adsorbed geometry presented for parameters illustrations, simply run in your terminal:
+
+```Bash
+cd ChemCat
+python3 chemcat.py demo/Au_slab.POSCAR demo/quinone.POSCAR 42 41 6 2 1 3.0 90 180 270 demo/adsorbed_quinone.POSCAR
+```
 
 ## A powerful Python3 API
 
-**TODO** `As a python3 module...`
+You can also use the `chemcat.py` script as a Python3 module for your specific needs. You can simply import it with:
 ```Python3
 import chemcat
 ```
+
+A basic API is available for smartly rotating ASE Atoms objects.
+
+A basic API documentation will soon be added here... Keep in touch!
 
 ## Installation
 
 Simply download this repository, and look for the `chemcat.py` script. It provides with a command-line interface and can be used as a Python3 module.
 
+Dependencies:
+- Python3
+- ASE
+
 In the future, a `setup.py` script will be provided for an even easier installation:
-Setuptool installation:
 - Download this repository
 - Execute `python3 ChemCat/setup.py`
 - Voilà!
