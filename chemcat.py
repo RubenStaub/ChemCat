@@ -5,6 +5,7 @@
 
 # Importing librairies
 
+import sys
 import argparse
 import numpy as np
 import ase
