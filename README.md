@@ -116,6 +116,8 @@ Yes! You can combine input files with or without periodic boundary conditions.
 
 Note that the combined unit cell will be defined by ASE, and it will most likely use the unit cell from the first input file.
 
+**Note:** If the added structure has periodic boundary conditions, beware that no minimum image convention transformation will be applied. As a consequence, please make sure that the added structure has coordinates that can be directly treated as a whole (e.g. no bond with adjacent virtual images)
+
 ### Are VASP output files compatible with Molden?
 Indeed, Molden does not properly handle VASP files written in Cartesian coordinates (with the `Cartesian` keyword). Therefore, by default, output files are written in direct coordinates if PBC are detected.
 
