@@ -5,6 +5,7 @@
 
 # Importing librairies
 
+from __future__ import print_function
 import sys
 import argparse
 import numpy as np
@@ -19,11 +20,11 @@ from ase.io import write
 __author__ = "Ruben Staub"
 __copyright__ = "Copyright © Laboratoire de Chimie, ENS de Lyon"
 __credits__ = ["Ruben Staub", "Sarah Blanck", "Danish Kaur Pannu", "Carine Seraphim"]
-__license__ = "GNU LGPL"
-__version__ = "3"
+__license__ = "GNU LGPLv3"
+__version__ = "1.0"
 __maintainer__ = "Ruben Staub"
 __email__ = "ruben.staub@ens-lyon.fr"
-__status__ = "Development"
+__status__ = "Release"
 
 
 # Functions definitions
