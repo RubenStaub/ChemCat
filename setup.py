@@ -13,6 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/RubenStaub/ChemCat",
     packages=setuptools.find_packages(),
+    py_modules=['chemcat'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
