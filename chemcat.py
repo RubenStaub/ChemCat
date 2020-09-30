@@ -19,7 +19,7 @@ from ase.io import write
 
 __author__ = "Ruben Staub"
 __copyright__ = "Copyright © Laboratoire de Chimie, ENS de Lyon"
-__credits__ = ["Ruben Staub", "Sarah Blanck", "Danish Kaur Pannu", "Carine Seraphim"]
+__credits__ = ["Ruben Staub", "Carles Martí", "Sarah Blanck", "Danish Kaur Pannu", "Carine Seraphim"]
 __license__ = "GNU LGPLv3"
 __version__ = "1.0"
 __maintainer__ = "Ruben Staub"
@@ -81,7 +81,7 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		atom2_surf (ase.Atom): An other atom of the surface used to define the dihedral adsorption angle.
 		
 		bond_vector (numpy.ndarray): The adsorption bond desired.
-			Details: offset = vect(atom1_surf, atom1_mol)
+			Details: bond_vector = vect(atom1_surf, atom1_mol)
 		
 		bond_angle_target (float or int): The adsorption bond angle desired (in degrees).
 			Details: bond_angle_target = angle(atom1_surf, atom1_mol, atom2_mol)
@@ -107,16 +107,10 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 	do_dihedral = dihedral_angle_target is not None
 	do_mol_dihedral = mol_dihedral_angle_target is not None
 	dihedral_use_mol2 = False
-	# Check if bond_surf and bond_inter are not aligned
-	if np.allclose(np.cross(bond_surf, bond_inter), 0):
+	# Check if bond_surf and bond_vector (i.e. targeted bond_inter) are not aligned
+	if np.allclose(np.cross(bond_surf, bond_vector), 0):
 		print("Warning: Surface atoms are incompatible with adsorption direction/bond. An adsorption dihedral angle cannot be defined.", file=sys.stderr)
 		do_dihedral = False
-	# Check if requested bond angle is not flat
-	if np.isclose((bond_angle_target + 90)%180 - 90, 0):
-		print("Warning: Requested bond angle is flat. Only a single dihedral angle can be defined (atom2_surf, atom1_surf, atom2_mol, atom3_mol).", file=sys.stderr)
-		do_mol_dihedral = False
-		dihedral_use_mol2 = True
-		print("Warning: Dihedral adsorption angle rotation will be perfomed with ({}, {}, {}, {}).".format(atom2_surf.index, atom1_surf.index, atom2_mol.index, atom3_mol.index), file=sys.stderr)
 	# Check if bond_mol and bond2_mol are not aligned
 	if np.allclose(np.cross(bond_mol, bond2_mol), 0):
 		print("Warning: Adsorbates atoms are aligned. An adsorbate dihedral angle cannot be defined.", file=sys.stderr)
@@ -125,6 +119,12 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		print("Warning: Dihedral adsorption angle rotation will not be performed.", file=sys.stderr)
 	if not do_mol_dihedral:
 		print("Warning: Adsorbate dihedral angle rotation will not be performed.", file=sys.stderr)
+	# Check if requested bond angle is not flat
+	if np.isclose((bond_angle_target + 90)%180 - 90, 0) and do_dihedral and do_mol_dihedral:
+		print("Warning: Requested bond angle is flat. Only a single dihedral angle can be defined (atom2_surf, atom1_surf, atom2_mol, atom3_mol).", file=sys.stderr)
+		do_mol_dihedral = False
+		dihedral_use_mol2 = True
+		print("Warning: Dihedral adsorption angle rotation will be perfomed with ({}, {}, {}, {}).".format(atom2_surf.index, atom1_surf.index, atom2_mol.index, atom3_mol.index), file=sys.stderr)
 	
 	###########################
 	#       Translation       #
