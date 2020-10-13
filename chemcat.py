@@ -104,8 +104,8 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 	bond2_mol = atom3_mol.position - atom2_mol.position
 	
 	# Check if dihedral angles can be defined
-	do_dihedral = dihedral_angle_target is not None
-	do_mol_dihedral = mol_dihedral_angle_target is not None
+	do_dihedral = dihedral_angle_target is not None and bond_angle_target is not None
+	do_mol_dihedral = mol_dihedral_angle_target is not None and bond_angle_target is not None
 	dihedral_use_mol2 = False
 	# Check if bond_surf and bond_vector (i.e. targeted bond_inter) are not aligned
 	if np.allclose(np.cross(bond_surf, bond_vector), 0):
@@ -120,7 +120,7 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 	if not do_mol_dihedral:
 		print("Warning: Adsorbate dihedral angle rotation will not be performed.", file=sys.stderr)
 	# Check if requested bond angle is not flat
-	if np.isclose((bond_angle_target + 90)%180 - 90, 0) and do_dihedral and do_mol_dihedral:
+	if do_dihedral and do_mol_dihedral and np.isclose((bond_angle_target + 90)%180 - 90, 0):
 		print("Warning: Requested bond angle is flat. Only a single dihedral angle can be defined (atom2_surf, atom1_surf, atom2_mol, atom3_mol).", file=sys.stderr)
 		do_mol_dihedral = False
 		dihedral_use_mol2 = True
@@ -142,6 +142,10 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		print("Translation successfully applied (error: ~ {:.5g} unit length)".format(np.linalg.norm(bond_inter-bond_vector)))
 	else:
 		raise AssertionError('An unknown error occured during the translation')
+	
+	# Quit now if single atom molecule or bond angle is undefined (only translation can be applied)
+	if len(molecule) < 2 or bond_angle_target is None:
+		return(None)
 	
 	###########################
 	#   Bond angle rotation   #
@@ -238,7 +242,7 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		dihedral_angle = get_proper_angle(bond_surf_reject, bond_mol_reject, bond_inter)
 		# Check bond rotation is unmodified
 		bond_angle = get_proper_angle(-bond_inter, bond_mol)
-		if np.isclose((mol_dihedral_angle - mol_dihedral_angle_target + 90)%180 - 90, 0, atol=1e-3) and np.isclose((dihedral_angle - dihedral_angle_target + 90)%180 - 90, 0, atol=1e-5) and np.isclose((bond_angle - bond_angle_target + 90)%180 - 90, 0, atol=1e-5) and np.allclose(atom1_mol.position - atom1_surf.position, bond_inter):
+		if np.isclose((mol_dihedral_angle - mol_dihedral_angle_target + 90)%180 - 90, 0, atol=1e-3) and (not do_dihedral or np.isclose((dihedral_angle - dihedral_angle_target + 90)%180 - 90, 0, atol=1e-5)) and np.isclose((bond_angle - bond_angle_target + 90)%180 - 90, 0, atol=1e-5) and np.allclose(atom1_mol.position - atom1_surf.position, bond_inter):
 			print("Adsorbate dihedral rotation successfully applied (error: {:.5f}°)".format((mol_dihedral_angle - mol_dihedral_angle_target + 90)%180 - 90))
 		else:
 			raise AssertionError('An unknown error occured during the adsorbate dihedral rotation')
