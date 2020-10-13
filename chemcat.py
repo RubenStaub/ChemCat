@@ -27,6 +27,11 @@ __email__ = "ruben.staub@ens-lyon.fr"
 __status__ = "Release"
 
 
+# Verbose level
+
+VERBOSE = True
+
+
 # Functions definitions
 
 def get_proper_angle(v1, v2, ref=None, degrees=True):
@@ -109,22 +114,22 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 	dihedral_use_mol2 = False
 	# Check if bond_surf and bond_vector (i.e. targeted bond_inter) are not aligned
 	if np.allclose(np.cross(bond_surf, bond_vector), 0):
-		print("Warning: Surface atoms are incompatible with adsorption direction/bond. An adsorption dihedral angle cannot be defined.", file=sys.stderr)
+		if VERBOSE: print("Warning: Surface atoms are incompatible with adsorption direction/bond. An adsorption dihedral angle cannot be defined.", file=sys.stderr)
 		do_dihedral = False
 	# Check if bond_mol and bond2_mol are not aligned
 	if np.allclose(np.cross(bond_mol, bond2_mol), 0):
-		print("Warning: Adsorbates atoms are aligned. An adsorbate dihedral angle cannot be defined.", file=sys.stderr)
+		if VERBOSE: print("Warning: Adsorbates atoms are aligned. An adsorbate dihedral angle cannot be defined.", file=sys.stderr)
 		do_mol_dihedral = False
 	if not do_dihedral:
-		print("Warning: Dihedral adsorption angle rotation will not be performed.", file=sys.stderr)
+		if VERBOSE: print("Warning: Dihedral adsorption angle rotation will not be performed.", file=sys.stderr)
 	if not do_mol_dihedral:
-		print("Warning: Adsorbate dihedral angle rotation will not be performed.", file=sys.stderr)
+		if VERBOSE: print("Warning: Adsorbate dihedral angle rotation will not be performed.", file=sys.stderr)
 	# Check if requested bond angle is not flat
 	if do_dihedral and do_mol_dihedral and np.isclose((bond_angle_target + 90)%180 - 90, 0):
-		print("Warning: Requested bond angle is flat. Only a single dihedral angle can be defined (atom2_surf, atom1_surf, atom2_mol, atom3_mol).", file=sys.stderr)
+		if VERBOSE: print("Warning: Requested bond angle is flat. Only a single dihedral angle can be defined (atom2_surf, atom1_surf, atom2_mol, atom3_mol).", file=sys.stderr)
 		do_mol_dihedral = False
 		dihedral_use_mol2 = True
-		print("Warning: Dihedral adsorption angle rotation will be perfomed with ({}, {}, {}, {}).".format(atom2_surf.index, atom1_surf.index, atom2_mol.index, atom3_mol.index), file=sys.stderr)
+		if VERBOSE: print("Warning: Dihedral adsorption angle rotation will be perfomed with ({}, {}, {}, {}).".format(atom2_surf.index, atom1_surf.index, atom2_mol.index, atom3_mol.index), file=sys.stderr)
 	
 	###########################
 	#       Translation       #
@@ -139,7 +144,7 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 	
 	# Check if translation was successful
 	if np.allclose(bond_inter, bond_vector):
-		print("Translation successfully applied (error: ~ {:.5g} unit length)".format(np.linalg.norm(bond_inter-bond_vector)))
+		if VERBOSE: print("Translation successfully applied (error: ~ {:.5g} unit length)".format(np.linalg.norm(bond_inter-bond_vector)))
 	else:
 		raise AssertionError('An unknown error occured during the translation')
 	
@@ -173,7 +178,7 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 	# Check if rotation was successful
 	bond_angle = get_proper_angle(-bond_inter, bond_mol)
 	if np.isclose((bond_angle - bond_angle_target + 90)%180 - 90, 0, atol=1e-3) and np.allclose(atom1_mol.position - atom1_surf.position, bond_inter):
-		print("Rotation successfully applied (error: {:.5f}°)".format((bond_angle - bond_angle_target + 90)%180 - 90))
+		if VERBOSE: print("Rotation successfully applied (error: {:.5f}°)".format((bond_angle - bond_angle_target + 90)%180 - 90))
 	else:
 		raise AssertionError('An unknown error occured during the rotation')
 	
@@ -209,7 +214,7 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		# Check bond rotation is unmodified
 		bond_angle = get_proper_angle(-bond_inter, bond_mol)
 		if np.isclose((dihedral_angle - dihedral_angle_target + 90)%180 - 90, 0, atol=1e-3) and np.isclose((bond_angle - bond_angle_target + 90)%180 - 90, 0, atol=1e-5) and np.allclose(atom1_mol.position - atom1_surf.position, bond_inter):
-			print("Dihedral rotation successfully applied (error: {:.5f}°)".format((dihedral_angle - dihedral_angle_target + 90)%180 - 90))
+			if VERBOSE: print("Dihedral rotation successfully applied (error: {:.5f}°)".format((dihedral_angle - dihedral_angle_target + 90)%180 - 90))
 		else:
 			raise AssertionError('An unknown error occured during the dihedral rotation')
 	
@@ -243,7 +248,7 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		# Check bond rotation is unmodified
 		bond_angle = get_proper_angle(-bond_inter, bond_mol)
 		if np.isclose((mol_dihedral_angle - mol_dihedral_angle_target + 90)%180 - 90, 0, atol=1e-3) and (not do_dihedral or np.isclose((dihedral_angle - dihedral_angle_target + 90)%180 - 90, 0, atol=1e-5)) and np.isclose((bond_angle - bond_angle_target + 90)%180 - 90, 0, atol=1e-5) and np.allclose(atom1_mol.position - atom1_surf.position, bond_inter):
-			print("Adsorbate dihedral rotation successfully applied (error: {:.5f}°)".format((mol_dihedral_angle - mol_dihedral_angle_target + 90)%180 - 90))
+			if VERBOSE: print("Adsorbate dihedral rotation successfully applied (error: {:.5f}°)".format((mol_dihedral_angle - mol_dihedral_angle_target + 90)%180 - 90))
 		else:
 			raise AssertionError('An unknown error occured during the adsorbate dihedral rotation')
 
