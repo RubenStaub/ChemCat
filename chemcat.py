@@ -67,6 +67,39 @@ def get_proper_angle(v1, v2, ref=None, degrees=True):
 	
 	return(angle*180/np.pi if degrees else angle)
 
+def angles_are_close(angle1, angle2, degrees=True, get_diff=False, atol=1e-3):
+	"""Check if both angles are close, modulo the field's characteristic.
+	
+	Parameters:
+		angle1 (float or int): First angle.
+		
+		angle2 (float or int): Second angle (used as reference).
+		
+		degrees (boolean) (optional): Control whether the angles are given in degrees (=True by default) or in radians.
+		
+		get_diff (boolean) (optional): If set to True, returns difference instead of boolean
+			Default: False
+		
+		atol (float) (optional): Absolute error tolerance.
+	
+	Note:
+		This function is required for robust comparison of angles
+	"""
+	# Get field's characteristic (i.e. maximum well-defined angle)
+	characteristic = 360 if degrees else 2*np.pi
+	half_char = characteristic/2
+	
+	# Compute angle difference error with modulo (max difference is ±half_char)
+	angle_diff = (angle1 - angle2 + half_char)%characteristic - half_char
+	
+	# Return difference directly if requested
+	if get_diff:
+		return(angle_diff)
+	
+	# Check if difference is small enough
+	close_enough = np.isclose(angle_diff, 0, atol=atol)
+	return(close_enough)
+
 def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom1_surf, atom2_surf, bond_vector, bond_angle_target, dihedral_angle_target=None, mol_dihedral_angle_target=None):
 	"""Performs translation and rotation of an adsorbate defined by an adsorption bond length, direction, angle and dihedral angle
 	
@@ -88,16 +121,19 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		bond_vector (numpy.ndarray): The adsorption bond desired.
 			Details: bond_vector = vect(atom1_surf, atom1_mol)
 		
-		bond_angle_target (float or int): The adsorption bond angle desired (in degrees).
+		bond_angle_target (float or int, optional): The adsorption bond angle desired (in degrees).
 			Details: bond_angle_target = angle(atom1_surf, atom1_mol, atom2_mol)
+			Note: if None, no bond angle rotation is performed
 		
-		dihedral_angle_target (float or int): The dihedral adsorption angle desired (in degrees).
+		dihedral_angle_target (float or int, optional): The dihedral adsorption angle desired (in degrees).
 			Details: dihedral_angle_target = dihedral(atom2_surf, atom1_surf, atom1_mol, atom2_mol)
-				The rotation vector is facing the adsorbate from the surface (i.e. counterclockwise rotation when facing the surface (i.e. view from top))
+				The rotation vector is facing the adsorbate from the surface (i.e. counterclockwise rotation when facing the surface (i.e. view from top)
+			Note: if None, no bond dihedral rotation is performed
 		
-		mol_dihedral_angle_target (float or int): The adsorbate dihedral angle desired (in degrees).
+		mol_dihedral_angle_target (float or int, optional): The adsorbate dihedral angle desired (in degrees).
 			Details: mol_dihedral_angle_target = dihedral(atom1_surf, atom1_mol, atom2_mol, atom3_mol)
 				The rotation vector is facing atom2_mol from atom1_mol
+			Note: if None, no adsorbate dihedral rotation is performed
 	
 	Returns:
 		None (the `molecule` object is modified in-place)
@@ -108,9 +144,11 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 	bond_mol = atom2_mol.position - atom1_mol.position
 	bond2_mol = atom3_mol.position - atom2_mol.position
 	
+	# Check if bond angle can be defined
+	do_bond_rotation = bond_angle_target is not None and len(molecule) > 1
 	# Check if dihedral angles can be defined
-	do_dihedral = dihedral_angle_target is not None and bond_angle_target is not None
-	do_mol_dihedral = mol_dihedral_angle_target is not None and bond_angle_target is not None
+	do_dihedral = dihedral_angle_target is not None
+	do_mol_dihedral = mol_dihedral_angle_target is not None
 	dihedral_use_mol2 = False
 	# Check if bond_surf and bond_vector (i.e. targeted bond_inter) are not aligned
 	if np.allclose(np.cross(bond_surf, bond_vector), 0):
@@ -124,8 +162,14 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		if VERBOSE: print("Warning: Dihedral adsorption angle rotation will not be performed.", file=sys.stderr)
 	if not do_mol_dihedral:
 		if VERBOSE: print("Warning: Adsorbate dihedral angle rotation will not be performed.", file=sys.stderr)
-	# Check if requested bond angle is not flat
-	if do_dihedral and do_mol_dihedral and np.isclose((bond_angle_target + 90)%180 - 90, 0):
+	# Check if requested bond angle is flat (0° or 180°)
+	if do_bond_rotation:
+		flat_angle = np.isclose((bond_angle_target + 90)%180 - 90, 0)
+	else:
+		# No bond angle rotation is performed, check if bond_mol and bond_vector are not aligned
+		flat_angle = np.allclose(np.cross(bond_vector, bond_mol), 0)
+	# If flat angle is requested, use long dihedral angle instead
+	if do_dihedral and do_mol_dihedral and flat_angle:
 		if VERBOSE: print("Warning: Requested bond angle is flat. Only a single dihedral angle can be defined (atom2_surf, atom1_surf, atom2_mol, atom3_mol).", file=sys.stderr)
 		do_mol_dihedral = False
 		dihedral_use_mol2 = True
@@ -148,39 +192,40 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 	else:
 		raise AssertionError('An unknown error occured during the translation')
 	
-	# Quit now if single atom molecule or bond angle is undefined (only translation can be applied)
-	if len(molecule) < 2 or bond_angle_target is None:
-		return(None)
-	
 	###########################
 	#   Bond angle rotation   #
 	###########################
 	
-	# Compute rotation vector
-	rotation_vector = np.cross(-bond_inter, bond_mol)
-	if np.allclose(rotation_vector, 0, atol=1e-5):
-		# If molecular bonds are aligned, any vector orthogonal to bond_inter can be used
-		# Such vector can be found as the orthogonal rejection of either X-axis, Y-axis or Z-axis onto bond_inter (since they cannot be all aligned)
-		non_aligned_vector = np.zeros(3)
-		non_aligned_vector[np.argmin(np.abs(bond_inter))] = 1 # Select the most orthogonal axis (lowest dot product)
-		rotation_vector = non_aligned_vector - np.dot(non_aligned_vector, bond_inter)/np.dot(bond_inter, bond_inter) * bond_inter
-	
-	# Retrieve current bond angle
-	bond_angle_ini = get_proper_angle(-bond_inter, bond_mol, rotation_vector)
-	
-	# Apply rotation to reach desired bond_angle
-	molecule.rotate(bond_angle_target-bond_angle_ini, v=rotation_vector, center=atom1_mol.position)
-	
-	# Update molecular bonds
-	bond_mol = atom2_mol.position - atom1_mol.position
-	bond2_mol = atom3_mol.position - atom2_mol.position
-	
-	# Check if rotation was successful
-	bond_angle = get_proper_angle(-bond_inter, bond_mol)
-	if np.isclose((bond_angle - bond_angle_target + 90)%180 - 90, 0, atol=1e-3) and np.allclose(atom1_mol.position - atom1_surf.position, bond_inter):
-		if VERBOSE: print("Rotation successfully applied (error: {:.5f}°)".format((bond_angle - bond_angle_target + 90)%180 - 90))
-	else:
-		raise AssertionError('An unknown error occured during the rotation')
+	# Perform bond angle rotation if possible
+	if do_bond_rotation:
+		# Compute rotation vector
+		rotation_vector = np.cross(-bond_inter, bond_mol)
+		if np.allclose(rotation_vector, 0, atol=1e-5):
+			# If molecular bonds are aligned, any vector orthogonal to bond_inter can be used
+			# Such vector can be found as the orthogonal rejection of either X-axis, Y-axis or Z-axis onto bond_inter (since they cannot be all aligned)
+			non_aligned_vector = np.zeros(3)
+			non_aligned_vector[np.argmin(np.abs(bond_inter))] = 1 # Select the most orthogonal axis (lowest dot product)
+			rotation_vector = non_aligned_vector - np.dot(non_aligned_vector, bond_inter)/np.dot(bond_inter, bond_inter) * bond_inter
+		
+		# Retrieve current bond angle
+		bond_angle_ini = get_proper_angle(-bond_inter, bond_mol, rotation_vector)
+		
+		# Apply rotation to reach desired bond_angle
+		molecule.rotate(bond_angle_target-bond_angle_ini, v=rotation_vector, center=atom1_mol.position)
+		
+		# Update molecular bonds
+		bond_mol = atom2_mol.position - atom1_mol.position
+		bond2_mol = atom3_mol.position - atom2_mol.position
+		
+		# Check if rotation was successful
+		# Check bond angle
+		bond_angle = get_proper_angle(-bond_inter, bond_mol)
+		# Check translation is unmodified
+		if (angles_are_close(bond_angle, bond_angle_target)
+		    and np.allclose(atom1_mol.position - atom1_surf.position, bond_inter)):
+			if VERBOSE: print("Rotation successfully applied (error: {:.5f}°)".format(angles_are_close(bond_angle, bond_angle_target, get_diff=True)))
+		else:
+			raise AssertionError('An unknown error occured during the rotation')
 	
 	###########################
 	# Dihedral angle rotation #
@@ -211,10 +256,12 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		else:
 			bond_mol_reject = bond_mol - np.dot(bond_mol, bond_inter)/bond_inter_inner * bond_inter
 		dihedral_angle = get_proper_angle(bond_surf_reject, bond_mol_reject, bond_inter)
-		# Check bond rotation is unmodified
+		# Check previous transformations are unmodified
 		bond_angle = get_proper_angle(-bond_inter, bond_mol)
-		if np.isclose((dihedral_angle - dihedral_angle_target + 90)%180 - 90, 0, atol=1e-3) and np.isclose((bond_angle - bond_angle_target + 90)%180 - 90, 0, atol=1e-5) and np.allclose(atom1_mol.position - atom1_surf.position, bond_inter):
-			if VERBOSE: print("Dihedral rotation successfully applied (error: {:.5f}°)".format((dihedral_angle - dihedral_angle_target + 90)%180 - 90))
+		if (angles_are_close(dihedral_angle, dihedral_angle_target)
+		    and (not do_bond_rotation or angles_are_close(bond_angle, bond_angle_target))
+		    and np.allclose(atom1_mol.position - atom1_surf.position, bond_inter)):
+			if VERBOSE: print("Dihedral rotation successfully applied (error: {:.5f}°)".format(angles_are_close(dihedral_angle, dihedral_angle_target, get_diff=True)))
 		else:
 			raise AssertionError('An unknown error occured during the dihedral rotation')
 	
@@ -245,10 +292,13 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 		# Check dihedral rotation
 		bond_mol_reject = bond_mol - np.dot(bond_mol, bond_inter)/bond_inter_inner * bond_inter
 		dihedral_angle = get_proper_angle(bond_surf_reject, bond_mol_reject, bond_inter)
-		# Check bond rotation is unmodified
+		# Check previous transformations are unmodified
 		bond_angle = get_proper_angle(-bond_inter, bond_mol)
-		if np.isclose((mol_dihedral_angle - mol_dihedral_angle_target + 90)%180 - 90, 0, atol=1e-3) and (not do_dihedral or np.isclose((dihedral_angle - dihedral_angle_target + 90)%180 - 90, 0, atol=1e-5)) and np.isclose((bond_angle - bond_angle_target + 90)%180 - 90, 0, atol=1e-5) and np.allclose(atom1_mol.position - atom1_surf.position, bond_inter):
-			if VERBOSE: print("Adsorbate dihedral rotation successfully applied (error: {:.5f}°)".format((mol_dihedral_angle - mol_dihedral_angle_target + 90)%180 - 90))
+		if (angles_are_close(mol_dihedral_angle, mol_dihedral_angle_target)
+		    and (not do_dihedral or angles_are_close(dihedral_angle, dihedral_angle_target))
+		    and (not do_bond_rotation or angles_are_close(bond_angle, bond_angle_target))
+		    and np.allclose(atom1_mol.position - atom1_surf.position, bond_inter)):
+			if VERBOSE: print("Adsorbate dihedral rotation successfully applied (error: {:.5f}°)".format(angles_are_close(mol_dihedral_angle, mol_dihedral_angle_target, get_diff=True)))
 		else:
 			raise AssertionError('An unknown error occured during the adsorbate dihedral rotation')
 
