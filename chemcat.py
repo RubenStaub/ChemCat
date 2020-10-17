@@ -33,6 +33,7 @@ VERBOSE = True
 
 
 # Functions definitions
+# Helper tools
 
 def get_proper_angle(v1, v2, ref=None, degrees=True):
 	"""Computes the signed angle between v2 and v1, counterclockwise when facing ref.
@@ -100,7 +101,127 @@ def angles_are_close(angle1, angle2, degrees=True, get_diff=False, atol=1e-3):
 	close_enough = np.isclose(angle_diff, 0, atol=atol)
 	return(close_enough)
 
-def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom1_surf, atom2_surf, bond_vector, bond_angle_target, dihedral_angle_target=None, mol_dihedral_angle_target=None):
+# Useful tools
+
+def get_adsorption_parameters(occupied_surface, atom1_mol, atom2_mol, atom3_mol, atom1_surf, atom2_surf):
+	"""Extract the adsorption parameters associated with a defined set of atoms
+	
+	Parameters:
+		occupied_surface (ase.Atoms): Geometry from which to extract adsorption parameters.
+		
+		atom1_mol (ase.Atom): The atom of the adsorbate that will be bound to the surface.
+		
+		atom2_mol (ase.Atom): An other atom of the adsorbate used to define the adsorption bond angle, and the dihedral adsorption angle.
+		
+		atom3_mol (ase.Atom): An third atom of the adsorbate used to define the adsorbate dihedral angle.
+		
+		atom1_surf (ase.Atom): The atom of the surface that will be bound to the molecule.
+		
+		atom2_surf (ase.Atom): An other atom of the surface used to define the dihedral adsorption angle.
+	
+	Returns:
+		bond_vector, bond_angle, dihedral_angle, mol_dihedral_angle (the adsorption parameters for use in `transform_adsorbate`)
+	"""
+	# Retrieve bonds of interest
+	bond_surf = atom2_surf.position - atom1_surf.position
+	bond_inter = atom1_mol.position - atom1_surf.position
+	bond_mol = atom2_mol.position - atom1_mol.position
+	bond2_mol = atom3_mol.position - atom2_mol.position
+	
+	# Check if bond angle can be defined
+	do_bond_rotation = len(occupied_surface) > 1
+	# Check if dihedral angles can be defined
+	do_dihedral = len(occupied_surface) > 1
+	do_mol_dihedral = len(occupied_surface) > 2
+	dihedral_use_mol2 = False
+	# Check if bond_surf and bond_inter are not aligned
+	if np.allclose(np.cross(bond_surf, bond_inter), 0):
+		if VERBOSE: print("Warning: Surface atoms are incompatible with adsorption direction/bond. An adsorption dihedral angle cannot be defined.", file=sys.stderr)
+		do_dihedral = False
+	# Check if bond_mol and bond2_mol are not aligned
+	if np.allclose(np.cross(bond_mol, bond2_mol), 0):
+		if VERBOSE: print("Warning: Adsorbates atoms are aligned. An adsorbate dihedral angle cannot be defined.", file=sys.stderr)
+		do_mol_dihedral = False
+	# Check if bond_mol and bond_vector are not aligned
+	flat_angle = np.allclose(np.cross(bond_inter, bond_mol), 0)
+	# If flat angle, check definition of dihedral angles
+	if (do_dihedral or do_mol_dihedral) and flat_angle:
+		# Check if long dihedral angle can be defined instead
+		if do_dihedral and do_mol_dihedral:
+			if VERBOSE: print("Warning: Bond angle is flat. Only a single dihedral angle can be defined (atom2_surf, atom1_surf, atom2_mol, atom3_mol).", file=sys.stderr)
+			do_mol_dihedral = False
+			dihedral_use_mol2 = True
+			if VERBOSE: print("Warning: Dihedral adsorption angle rotation will be defined with ({}, {}, {}, {}).".format(atom2_surf.index, atom1_surf.index, atom2_mol.index, atom3_mol.index), file=sys.stderr)
+		else:
+			# No dihedral angle can be defined...
+			if VERBOSE: print("Warning: At least 4 defined atoms are aligned. No dihedral angle can be defined", file=sys.stderr)
+			do_dihedral = False
+			do_mol_dihedral = False
+	
+	###########################
+	#       Bond vector       #
+	###########################
+	
+	# Save translation vector of adsorbate with respect to adsorption site
+	bond_vector = bond_inter
+	
+	###########################
+	#       Bond angle        #
+	###########################
+	
+	# Extract bond angle if possible
+	if do_bond_rotation:
+		# Compute rotation vector
+		rotation_vector = np.cross(-bond_inter, bond_mol)
+		if np.allclose(rotation_vector, 0, atol=1e-5):
+			# If molecular bonds are aligned, any vector orthogonal to bond_inter can be used
+			# Such vector can be found as the orthogonal rejection of either X-axis, Y-axis or Z-axis onto bond_inter (since they cannot be all aligned)
+			non_aligned_vector = np.zeros(3)
+			non_aligned_vector[np.argmin(np.abs(bond_inter))] = 1 # Select the most orthogonal axis (lowest dot product)
+			rotation_vector = non_aligned_vector - np.dot(non_aligned_vector, bond_inter)/np.dot(bond_inter, bond_inter) * bond_inter
+		
+		# Retrieve bond angle
+		bond_angle = get_proper_angle(-bond_inter, bond_mol, rotation_vector)
+	else:
+		bond_angle = None
+	
+	###########################
+	#     Dihedral angle      #
+	###########################
+	
+	# Extract dihedral angle if possible
+	if do_dihedral:
+		# Retrieve dihedral angle (by computing the angle between the orthogonal rejection of bond_surf and bond_mol onto bond_inter)
+		bond_inter_inner = np.dot(bond_inter, bond_inter)
+		bond_surf_reject = bond_surf - np.dot(bond_surf, bond_inter)/bond_inter_inner * bond_inter
+		if dihedral_use_mol2:
+			bond_mol_reject = bond2_mol - np.dot(bond2_mol, bond_inter)/bond_inter_inner * bond_inter
+		else:
+			bond_mol_reject = bond_mol - np.dot(bond_mol, bond_inter)/bond_inter_inner * bond_inter
+		dihedral_angle = get_proper_angle(bond_surf_reject, bond_mol_reject, bond_inter)
+	else:
+		dihedral_angle = None
+	
+	#####################################
+	#     Adsorbate dihedral angle      #
+	#####################################
+	
+	# Extract adsorbate dihedral angle if possible
+	if do_mol_dihedral:
+		# Retrieve adsorbate dihedral angle (by computing the angle between the orthogonal rejection of bond_inter and bond2_mol onto bond_mol)
+		bond_mol_inner = np.dot(bond_mol, bond_mol)
+		bond_inter_reject = -bond_inter - np.dot(-bond_inter, bond_mol)/bond_mol_inner * bond_mol
+		bond2_mol_reject = bond2_mol - np.dot(bond2_mol, bond_mol)/bond_mol_inner * bond_mol
+		mol_dihedral_angle = get_proper_angle(bond_inter_reject, bond2_mol_reject, bond_mol)
+	else:
+		mol_dihedral_angle = None
+	
+	# Return all computed adsorption parameters
+	return(bond_vector, bond_angle, dihedral_angle, mol_dihedral_angle)
+
+# Main function
+
+def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom1_surf, atom2_surf, bond_vector, bond_angle_target=None, dihedral_angle_target=None, mol_dihedral_angle_target=None):
 	"""Performs translation and rotation of an adsorbate defined by an adsorption bond length, direction, angle and dihedral angle
 	
 	Parameters:
@@ -147,8 +268,8 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 	# Check if bond angle can be defined
 	do_bond_rotation = bond_angle_target is not None and len(molecule) > 1
 	# Check if dihedral angles can be defined
-	do_dihedral = dihedral_angle_target is not None
-	do_mol_dihedral = mol_dihedral_angle_target is not None
+	do_dihedral = dihedral_angle_target is not None and len(molecule) > 1
+	do_mol_dihedral = mol_dihedral_angle_target is not None and len(molecule) > 2
 	dihedral_use_mol2 = False
 	# Check if bond_surf and bond_vector (i.e. targeted bond_inter) are not aligned
 	if np.allclose(np.cross(bond_surf, bond_vector), 0):
@@ -168,12 +289,20 @@ def transform_adsorbate(molecule, surface, atom1_mol, atom2_mol, atom3_mol, atom
 	else:
 		# No bond angle rotation is performed, check if bond_mol and bond_vector are not aligned
 		flat_angle = np.allclose(np.cross(bond_vector, bond_mol), 0)
-	# If flat angle is requested, use long dihedral angle instead
-	if do_dihedral and do_mol_dihedral and flat_angle:
-		if VERBOSE: print("Warning: Requested bond angle is flat. Only a single dihedral angle can be defined (atom2_surf, atom1_surf, atom2_mol, atom3_mol).", file=sys.stderr)
-		do_mol_dihedral = False
-		dihedral_use_mol2 = True
-		if VERBOSE: print("Warning: Dihedral adsorption angle rotation will be perfomed with ({}, {}, {}, {}).".format(atom2_surf.index, atom1_surf.index, atom2_mol.index, atom3_mol.index), file=sys.stderr)
+	# If flat angle is requested, check definition of dihedral angles
+	if (do_dihedral or do_mol_dihedral) and flat_angle:
+		# Check if long dihedral angle can be used instead
+		if do_dihedral and do_mol_dihedral:
+			if VERBOSE: print("Warning: Bond angle is flat. Only a single dihedral angle can be defined (atom2_surf, atom1_surf, atom2_mol, atom3_mol).", file=sys.stderr)
+			do_mol_dihedral = False
+			dihedral_use_mol2 = True
+			if VERBOSE: print("Warning: Dihedral adsorption angle rotation will be performed with ({}, {}, {}, {}).".format(atom2_surf.index, atom1_surf.index, atom2_mol.index, atom3_mol.index), file=sys.stderr)
+		else:
+			# No dihedral angle can be defined...
+			if VERBOSE: print("Warning: At least 4 defined atoms are aligned. No dihedral angle can be defined", file=sys.stderr)
+			do_dihedral = False
+			do_mol_dihedral = False
+			if VERBOSE: print("Warning: No dihedral angle rotation will be performed.", file=sys.stderr)
 	
 	###########################
 	#       Translation       #
